@@ -16,7 +16,8 @@ module Geocoder
           :longitude     => options[:longitude] || :longitude,
           :geocode_block => block,
           :units         => options[:units],
-          :method        => options[:method]
+          :method        => options[:method],
+          :fallback_fields => options[:fallback_fields]
         )
       end
 

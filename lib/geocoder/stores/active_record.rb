@@ -226,14 +226,26 @@ module Geocoder::Store
     # (or other as specified in +geocoded_by+). Returns coordinates (array).
     #
     def geocode
-      do_lookup(false) do |o,rs|
-        if r = rs.first
-          unless r.latitude.nil? or r.longitude.nil?
-            o.__send__  "#{self.class.geocoder_options[:latitude]}=",  r.latitude
-            o.__send__  "#{self.class.geocoder_options[:longitude]}=", r.longitude
+      # => Use additional fields to geocode if the first one fails
+      # => The idea being a more relaxed geocoding to return less accurate results
+      all_search_fields = [] << self.class.geocoder_options[:user_address]
+      all_search_fields << self.class.geocoder_options[:fallback_fields]
+
+      # Loop through each field which we'll geocode against
+      all_search_fields.flatten.each do |search_field|
+        # => Set the current geocoding field to this field
+        self.class.geocoder_options[:user_address] = search_field
+        do_lookup(false) do |o,rs|
+          if r = rs.first
+            unless r.latitude.nil? or r.longitude.nil?
+              o.__send__  "#{self.class.geocoder_options[:latitude]}=",  r.latitude
+              o.__send__  "#{self.class.geocoder_options[:longitude]}=", r.longitude
+            end
+            r.coordinates
           end
-          r.coordinates
         end
+        # => if the object has been geocoded, don't try any other fields
+        break if self.geocoded?
       end
     end
 
